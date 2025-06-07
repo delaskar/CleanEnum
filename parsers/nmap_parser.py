@@ -1,10 +1,19 @@
+import logging
 from pathlib import Path
+from core import exepcions
+
+# Logging Settings
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] %(message)s'
+)
 
 
 class NmapParser:
+    allowed_suffixes = [".txt", ".nmap", ".gnmap"]
+    
     def __init__(self, filepath):
         self.filepath = filepath            
-        self.allowed_suffixes = [".txt", ".nmap", ".gnmap"]
         self.nmap_output_lines = []         
         self.os = None
         self.nmap_ports = []                
@@ -13,24 +22,22 @@ class NmapParser:
 
     def _load_file(self):
         if not isinstance(self.filepath, (str, Path)):
-            raise ValueError("[❌] Invalid Entry: The input should be a str or an os path.")
+            raise exepcions.InvalidPathTypeError("The 'filepath' parameter must be a string or a Path object.")
 
         path = Path(self.filepath)
         
-        if path.exists():
-            print("[😎] File Found!")
-            if path.suffix in self.allowed_suffixes:
-                print(f"[👌] Valid File Format: {path.suffix}")
-                try:
-                    with open(path, 'r', encoding="utf-8") as file:
-                        lines = file.readlines()
-                        self.nmap_output_lines = lines
-                        print("[😎] File uploaded successfully!")
-                        return True
-                except UnicodeDecodeError:
-                    return "Error: 'UTF-8' codec can't decode byte."
-            else:
-                return "[☠️] Invalid File Format!"
-        else:
-            return "[☠️] File NOT Found"
-
+        if not path.exists():
+            raise exepcions.FileNotFoundErrorCustom(f"File Not Found: {path}")
+       
+        if path.suffix not in self.allowed_suffixes:
+            raise exepcions.FileFormatNotSupportedError(f"Illegal Format: {path.suffix}")
+        
+        try:
+            with path.open('r', encoding='utf-8') as file:
+                self.nmap_output_lines = file.readlines()
+                logging.info(f"File uploaded successfully: {path.name}")
+        except UnicodeDecodeError as e:
+            raise exepcions.FileEncodingError("Encoding error: Could not decode as UTF-8.") from e
+        
+    def execution(self):
+        self._load_file()
