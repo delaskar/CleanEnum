@@ -1,4 +1,5 @@
 import logging
+import re
 from pathlib import Path
 from core import exepcions
 
@@ -39,5 +40,20 @@ class NmapParser:
         except UnicodeDecodeError as e:
             raise exepcions.FileEncodingError("Encoding error: Could not decode as UTF-8.") from e
         
+    
+    def _extract_ports(self):
+        for line in self.nmap_output_lines:
+            regex = r"^(\d+)\/(\w+)\s+(\w+)\s+(\S+)(?:\s+(.*))?$"
+            match = re.match(regex, line.strip())
+
+            if match:
+                port, proto, state, service, version = match.groups()
+                print("PORT", port)
+                print("PROTO", proto)
+                print("STATE", state)
+                print("SERVICE", service)
+                print("VERSION", version) 
+    
     def execution(self):
         self._load_file()
+        self._extract_ports()
